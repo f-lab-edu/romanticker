@@ -24,9 +24,9 @@ repositories {
 }
 
 dependencies {
-    implementation(project(":shared:shared-common"))
-    implementation(project(":shared:shared-config"))
+    implementation(project(":shared"))
     implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
     compileOnly("org.projectlombok:lombok")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     annotationProcessor("org.projectlombok:lombok")
