@@ -3,11 +3,11 @@ package com.polynomeer.infra.redis;
 import com.polynomeer.domain.popular.model.PopularWindow;
 import com.polynomeer.domain.popular.port.PopularCounterPort;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -28,7 +28,7 @@ public class RedisPopularCounterAdapter implements PopularCounterPort {
     public void increment(String ticker, PopularWindow window, Instant atUtc) {
         String key = minuteKey(window, atUtc);
         redis.opsForZSet().incrementScore(key, ticker, 1.0);
-        redis.expire(key, window.length().plusSeconds(3600));
+        redis.expire(key, window.length().plusSeconds(3600)); // 여유 TTL
     }
 
     @Override
@@ -37,19 +37,16 @@ public class RedisPopularCounterAdapter implements PopularCounterPort {
         if (keys.isEmpty()) return List.of();
 
         String resultKey = "pop:rank:" + window.name().toLowerCase(Locale.ROOT);
-        // union & short cache
-        redis.execute((RedisCallback<Object>) conn -> {
-            byte[][] arr = keys.stream().map(String::getBytes).toArray(byte[][]::new);
-            conn.zUnionStore(resultKey.getBytes(), arr);
-            conn.expire(resultKey.getBytes(), 20);
-            return null;
-        });
+        String base = keys.getFirst();
+        List<String> others = keys.subList(1, keys.size());
+
+        redis.opsForZSet().unionAndStore(base, others, resultKey);
+        redis.expire(resultKey, Duration.ofSeconds(20));
 
         Set<ZSetOperations.TypedTuple<String>> tuples =
                 redis.opsForZSet().reverseRangeWithScores(resultKey, 0, limit - 1);
-
         if (tuples == null) return List.of();
-        List<RankItem> out = new ArrayList<>();
+        List<RankItem> out = new ArrayList<>(tuples.size());
         for (var t : tuples) {
             out.add(new RankItem(t.getValue(), t.getScore() == null ? 0L : t.getScore().longValue()));
         }
