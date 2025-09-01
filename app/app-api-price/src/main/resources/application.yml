@@ -13,6 +13,10 @@ app:
   popular:
     count:
       windows: M15,H1,D1,D7
+    query:
+      maxLimit: 10
+      defaultExchange: US
+      allowedExchanges: [ US, NASDAQ, NYSE, AMEX ]
   ticker:
     extract:
       path-variable-names: [ ticker, symbol ]
