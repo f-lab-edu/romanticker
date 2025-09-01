@@ -13,3 +13,8 @@ app:
   popular:
     count:
       windows: M15,H1,D1,D7
+  ticker:
+    extract:
+      path-variable-names: [ ticker, symbol ]
+      query-param-names: [ ticker, symbol ]
+      header-names: [ X-Ticker ]
