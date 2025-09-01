@@ -3,6 +3,9 @@ package com.polynomeer.infra.redis;
 import com.polynomeer.domain.popular.model.PopularWindow;
 import com.polynomeer.domain.popular.port.PopularCounterPort;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.data.redis.core.RedisOperations;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Component;
@@ -12,10 +15,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 
 @Component
 @RequiredArgsConstructor
@@ -29,6 +29,25 @@ public class RedisPopularCounterAdapter implements PopularCounterPort {
         String key = minuteKey(window, atUtc);
         redis.opsForZSet().incrementScore(key, ticker, 1.0);
         redis.expire(key, window.length().plusSeconds(3600)); // 여유 TTL
+    }
+
+    @Override
+    public void incrementBatch(String ticker, Collection<PopularWindow> windows, Instant atUtc) {
+        if (windows == null || windows.isEmpty()) return;
+        // 파이프라인: 네트워크 RTT 1회
+        redis.executePipelined(new SessionCallback<>() {
+            @Override
+            @SuppressWarnings("unchecked")
+            public Object execute(@NotNull RedisOperations operations) {
+                RedisOperations<String, String> ops = (RedisOperations<String, String>) operations;
+                for (PopularWindow w : windows) {
+                    String key = minuteKey(w, atUtc);
+                    ops.opsForZSet().incrementScore(key, ticker, 1.0);
+                    ops.expire(key, Duration.ofSeconds(w.length().toSeconds() + 3600));
+                }
+                return null;
+            }
+        });
     }
 
     @Override
