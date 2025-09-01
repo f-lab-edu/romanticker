@@ -8,3 +8,8 @@ spring:
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - [%X{traceId}] %msg%n"
+
+app:
+  popular:
+    count:
+      windows: M15,H1,D1,D7

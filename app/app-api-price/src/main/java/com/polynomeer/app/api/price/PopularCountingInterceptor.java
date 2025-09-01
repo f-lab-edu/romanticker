@@ -1,7 +1,6 @@
 package com.polynomeer.app.api.price;
 
-import com.polynomeer.domain.popular.model.PopularWindow;
-import com.polynomeer.domain.popular.port.PopularCounterPort;
+import com.polynomeer.app.api.price.service.PopularHitRecorder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,7 +16,7 @@ import java.util.Locale;
 @RequiredArgsConstructor
 public class PopularCountingInterceptor implements HandlerInterceptor {
 
-    private final PopularCounterPort counter;
+    private final PopularHitRecorder recorder;
 
     @Override
     public void afterCompletion(@NotNull HttpServletRequest req, @NotNull HttpServletResponse res, @NotNull Object handler, Exception ex) {
@@ -28,12 +27,7 @@ public class PopularCountingInterceptor implements HandlerInterceptor {
         String ticker = extractTickerFromUri(uri);
         if (ticker == null) return;
 
-        Instant now = Instant.now();
-        // 여러 윈도우에 동시 증가
-        counter.increment(ticker, PopularWindow.M15, now);
-        counter.increment(ticker, PopularWindow.H1, now);
-        counter.increment(ticker, PopularWindow.D1, now);
-        counter.increment(ticker, PopularWindow.D7, now);
+        recorder.recordHit(ticker, Instant.now());
     }
 
     private String extractTickerFromUri(String uri) {
