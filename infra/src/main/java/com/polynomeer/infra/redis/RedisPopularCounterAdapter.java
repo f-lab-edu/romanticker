@@ -32,7 +32,7 @@ public class RedisPopularCounterAdapter implements PopularCounterPort {
     }
 
     @Override
-    public void incrementBatch(String ticker, Collection<PopularWindow> windows, Instant atUtc) {
+    public void increment(String ticker, Collection<PopularWindow> windows, Instant atUtc) {
         if (windows == null || windows.isEmpty()) return;
         // 파이프라인: 네트워크 RTT 1회
         redis.executePipelined(new SessionCallback<>() {
